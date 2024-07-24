@@ -5,8 +5,11 @@ from gaboon.utils._cli_constants import (
     PROJECT_FOLDERS,
 )
 
-COUNTER_PROJECT_PATH = Path(__file__).parent.joinpath("test_projects/gaboon_project")
+COUNTER_PROJECT_PATH = Path(__file__).parent.joinpath(
+    "data/test_projects/gaboon_project"
+)
 COUNTER_PROJECT_FILE_PATH = COUNTER_PROJECT_PATH.joinpath("src/Counter.vy")
+MESC_CONFIG_PATH = Path(__file__).parent.joinpath("data/test_configs/test_mesc.json")
 
 
 def assert_files_and_folders_exist(temp_dir: Path):

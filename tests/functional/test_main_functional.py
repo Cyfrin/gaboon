@@ -3,9 +3,9 @@ import subprocess
 EXPECTED_HELP_TEXT = "Pythonic Smart Contract Development Framework"
 
 
-def test_help():
+def test_help(gab_path):
     result = subprocess.run(
-        ["gab", "-h"],
+        [gab_path, "-h"],
         check=True,
         capture_output=True,
         text=True,

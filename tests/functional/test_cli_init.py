@@ -8,10 +8,10 @@ from tests.base_test import assert_files_and_folders_exist
 EXPECTED_HELP_TEXT = "Pythonic Smart Contract Development Framework"
 
 
-def test_init():
+def test_init(gab_path):
     with tempfile.TemporaryDirectory() as temp_dir:
         result = subprocess.run(
-            ["gab", "init", Path(temp_dir)],
+            [gab_path, "init", Path(temp_dir)],
             check=True,
             capture_output=True,
             text=True,
@@ -21,10 +21,10 @@ def test_init():
         assert result.returncode == 0
 
 
-def test_find_project_root_from_new_project():
+def test_find_project_root_from_new_project(gab_path):
     with tempfile.TemporaryDirectory() as temp_dir:
         result = subprocess.run(
-            ["gab", "init", Path(temp_dir)],
+            [gab_path, "init", Path(temp_dir)],
             check=True,
             capture_output=True,
             text=True,

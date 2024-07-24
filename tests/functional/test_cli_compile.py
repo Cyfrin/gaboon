@@ -6,9 +6,9 @@ from pathlib import Path
 EXPECTED_HELP_TEXT = "Vyper compiler"
 
 
-def test_compile_help():
+def test_compile_help(gab_path):
     result = subprocess.run(
-        ["gab", "compile", "-h"],
+        [gab_path, "compile", "-h"],
         check=True,
         capture_output=True,
         text=True,
@@ -19,9 +19,9 @@ def test_compile_help():
     assert result.returncode == 0
 
 
-def test_build_help():
+def test_build_help(gab_path):
     result = subprocess.run(
-        ["gab", "build", "-h"],
+        [gab_path, "build", "-h"],
         check=True,
         capture_output=True,
         text=True,
@@ -32,12 +32,12 @@ def test_build_help():
     assert result.returncode == 0
 
 
-def test_compile_alias_build_project(cleanup_out_folder):
+def test_compile_alias_build_project(cleanup_out_folder, gab_path):
     current_dir = Path.cwd()
     try:
         os.chdir(COUNTER_PROJECT_PATH)
         result = subprocess.run(
-            ["gab", "build"],
+            [gab_path, "build"],
             check=True,
             capture_output=True,
             text=True,

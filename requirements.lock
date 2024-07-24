@@ -134,7 +134,7 @@ six==1.16.0
 sortedcontainers==2.4.0
     # via hypothesis
     # via trie
-titanoboa @ git+https://github.com/vyperlang/titanoboa@e7efc7f3ef73b7f552a806b30dfe15ed638eb994
+titanoboa @ git+https://github.com/vyperlang/titanoboa@9f1af8ccd779ca50c6103c36043fe01cf9a29551
     # via gaboon
 tomli-w==1.0.0
     # via gaboon

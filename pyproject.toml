@@ -10,6 +10,8 @@ dependencies = [
 ]
 readme = "README.md"
 requires-python = ">=3.11"
+authors = [{ name = "Cyfrin" }]
+maintainers = [{ name = "Cyfrin" }, { name = "Patrick Collins" }]
 
 [project.scripts]
 "gab" = "gaboon:main"
@@ -35,9 +37,9 @@ packages = ["gaboon"]
 
 [tool.pytest.ini_options]
 markers = [
-    "subprocess: marks tests that use a subprocess and are slow to run (deselect with '-m \"not subprocess\"')",
+    "integration: marks tests that make an actual RPC call (deselect with '-m \"not integration\"')",
 ]
-# addopts = "-m \"not subprocess\""
+addopts = "-m \"not integration\""
 
 [tool.rye.scripts]
 typecheck = "mypy ."

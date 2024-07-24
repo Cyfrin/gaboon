@@ -1,11 +1,9 @@
-from importlib.machinery import ModuleSpec
 from typing import List, Any
 import sys
 from pathlib import Path
 from gaboon.project.project_class import Project
 import importlib.util
 from gaboon.logging import logger
-import boa
 
 
 def main(args: List[Any]) -> int:
@@ -15,6 +13,14 @@ def main(args: List[Any]) -> int:
 
 def run_script(root: Path | str, script_name_or_path: Path | str):
     project = Project(root)
+    run_script_by_project(project, script_name_or_path, root)
+
+
+def run_script_by_project(
+    project: Project, script_name_or_path: Path | str, root: Path | str | None = None
+):
+    if root is None:
+        root = project.root
     script_path: Path = get_script_path(project, script_name_or_path)
 
     # Set up the environment (add necessary paths to sys.path, etc.)
@@ -34,13 +40,17 @@ def run_script(root: Path | str, script_name_or_path: Path | str):
         logger.error(f"Cannot find loader for '{script_path}'")
         sys.exit(1)
 
-    module.__dict__["boa"] = boa
+    if project.active_network.url != "" and project.active_network.url is not None:
+        project.set_boa_network_env()
+    module.__dict__["boa"] = project.boa
     spec.loader.exec_module(module)
 
     if hasattr(module, "main") and callable(module.main):
         module.main()
     else:
         logger.info("No main() function found. Executing script as is...")
+    sys.path.pop(0)
+    sys.path.pop(0)
 
 
 def get_script_path(project: Project, script_name_or_path: Path | str) -> Path:

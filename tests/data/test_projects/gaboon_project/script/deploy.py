@@ -1,6 +1,4 @@
 from src import Counter
-import os
-import boa
 
 def deploy():
     counter = Counter.deploy()

@@ -1,7 +1,17 @@
 import os
 import tomllib
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
+import json
+from gaboon.logging import logger
+from gaboon.project.networks import (
+    Network,
+    Networks,
+    DEFAULT_NETWORK_NAME,
+    DEVELOPMENT_NETWORK_NAME,
+    ENDPOINTS_CONFIG_NAME,
+    DEVELOPMENT_NETWORK_DICT,
+)
 
 DEFAULT_VYPER_VERSION = "0.4.0"
 
@@ -14,8 +24,11 @@ GABOON_DEFAULT_CONFIG = {
             "out": "out",
             "libs": ["lib"],
             "remappings": [],
+            "mesc_path": "",
+            DEFAULT_NETWORK_NAME: DEVELOPMENT_NETWORK_NAME,
         }
-    }
+    },
+    ENDPOINTS_CONFIG_NAME: DEVELOPMENT_NETWORK_DICT,
 }
 
 GABOON_PROFILE_ENV_VAR = "GABOON_PROFILE"
@@ -26,17 +39,18 @@ DEFAULT_PROFILE_NAME = "default"
 class GaboonConfig:
     # Attributes
     # ========================================================================
-    profile: str | None
+    active_profile: str | None
     config_data: dict
-    active_profile: dict
+    active_profile_data: dict
+    networks: Networks
 
     # Constructors
     # ========================================================================
     def __init__(
-        self, config_source: Union[dict, Path] | None, profile: str | None = None
+        self, config_source: Union[dict, Path] | None, active_profile: str | None = None
     ):
         if isinstance(config_source, dict):
-            self.set_config_data(config_source, profile)
+            self.set_config_data(config_source, active_profile)
         elif isinstance(config_source, Path):
             self._init_from_path(config_source)
         elif config_source is None:
@@ -48,25 +62,65 @@ class GaboonConfig:
 
     # Special Methods
     # ========================================================================
+    def __getattr__(self, name: str) -> Any:
+        if name in self.__dict__:
+            return self.__dict__[name]
+        if name in self.active_profile_data:
+            return self.active_profile_data[name]
+        if name in self.config_data:
+            return self.config_data[name]
+        return getattr(self.config_data, name)
+
     def __repr__(self):
-        return f"GaboonConfig({self.active_profile})"
+        return f"GaboonConfig({self.active_profile_data})"
 
     def __str__(self):
         return self.__repr__()
 
     # Public Methods
     # ========================================================================
-    def set_config_data(self, config_data: dict, profile: str | None = None):
-        if profile is None:
-            profile = os.getenv(GABOON_PROFILE_ENV_VAR) or os.getenv(
+    def set_config_data(self, config_data: dict, active_profile: str | None = None):
+        if active_profile is None:
+            active_profile = os.getenv(GABOON_PROFILE_ENV_VAR) or os.getenv(
                 FOUNDRY_PROFILE_ENV_VAR
             )
-            if profile:
-                self.profile = profile
+            if active_profile:
+                self.active_profile = active_profile
             else:
-                self.profile = DEFAULT_PROFILE_NAME
+                self.active_profile = DEFAULT_PROFILE_NAME
         self.config_data = config_data
-        self.active_profile = self.config_data["profile"][self.profile]
+        self.active_profile_data = self.config_data["profile"][self.active_profile]
+        self.add_mesc_endpoints(self.active_profile_data.get("mesc_path", None))
+        self._load_networks()
+
+    def add_mesc_endpoints(self, mesc_path: Path | None = None):
+        if mesc_path is not None and mesc_path != "":
+            with open(mesc_path, "r") as file:
+                if ENDPOINTS_CONFIG_NAME not in self.config_data:
+                    self.config_data[ENDPOINTS_CONFIG_NAME] = {}
+                self.config_data[ENDPOINTS_CONFIG_NAME].update(
+                    # in mesc, they are called "endpoints"
+                    # https://github.com/paradigmxyz/mesc/tree/main
+                    json.load(file).get("endpoints", {})
+                )
+        else:
+            mesc_path = Path.home() / "mesc.json"
+            if mesc_path.exists():
+                self.add_mesc_endpoints(mesc_path)
+            else:
+                logger.warning(
+                    f"No mesc_ath given or mesc.json file found at {mesc_path}"
+                )
+
+    def change_profile(self, new_profile: str):
+        self.set_active_profile(new_profile)
+
+    def set_active_profile(self, active_profile: str):
+        self.active_profile = active_profile
+        self.active_profile_data = self.config_data["profile"][active_profile]
+        self.networks.set_active_network(
+            self.config_data["profile"][active_profile][DEFAULT_NETWORK_NAME]
+        )
 
     def read_gaboon_config(self, config_path: Path) -> dict:
         if not str(config_path).endswith("/gaboon.toml"):
@@ -75,3 +129,15 @@ class GaboonConfig:
             raise FileNotFoundError(f"Config file not found: {config_path}")
         with open(config_path, "rb") as f:
             return tomllib.load(f)
+
+    # Internal Methods
+    # ========================================================================
+    def _load_networks(self):
+        config_data = self.config_data
+        self.networks = Networks(config_data[ENDPOINTS_CONFIG_NAME])
+
+    # Properties
+    # ========================================================================
+    @property
+    def active_network(self) -> Network:
+        return self.networks.active_network

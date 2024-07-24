@@ -6,9 +6,9 @@ import os
 EXPECTED_HELP_TEXT = "Runs a script"
 
 
-def test_run_help():
+def test_run_help(gab_path):
     result = subprocess.run(
-        ["gab", "run", "-h"],
+        [gab_path, "run", "-h"],
         check=True,
         capture_output=True,
         text=True,
@@ -19,12 +19,12 @@ def test_run_help():
     assert result.returncode == 0
 
 
-def test_run_gaboon_project():
+def test_run_gaboon_project(gab_path):
     current_dir = Path.cwd()
     try:
         os.chdir(COUNTER_PROJECT_PATH)
         result = subprocess.run(
-            ["gab", "run", "deploy"],
+            [gab_path, "run", "deploy"],
             capture_output=True,
             text=True,
             check=True,
