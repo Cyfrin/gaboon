@@ -1,7 +1,7 @@
 import pytest
 import os
 import shutil
-from gaboon.project.project_class import Project
+from gaboon.project import Project
 from gaboon.project.gaboon_config import GaboonConfig
 import json
 import sys

@@ -13,3 +13,6 @@ wheels/
 .pytest_cache
 .ruff_cache
 out/
+.password.unsafe
+.password 
+.password*

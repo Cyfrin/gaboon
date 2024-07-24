@@ -8,7 +8,7 @@ from tests.base_test import (
     ANVIL_DEFAULT_KEY,
     ANVIL_SECOND_KEY,
 )
-from gaboon.project.project_class import Project
+from gaboon.project import Project
 from gaboon.cli.run import run_script_by_project
 from gaboon.project.accounts import Accounts, Account
 

@@ -36,6 +36,7 @@ The Gaboon viper (Bitis gabonica), also called the Gaboon adder, is a viper spec
 - [ ] fuzzing 
 - [ ] `gab console`
 - [ ] Refactor with rust's `PyO3` so it's faster
+- [ ] ENS Support
 
 # Speed Comparisons
 
@@ -62,3 +63,9 @@ Brownie -> Wrapped up `Account` objects into a few sub-classes so they could be 
 Boa -> Puts all account info into the network ENV that is active. 
 
 So for Gaboon... We will want to store it at a higher level, and then pass it down to the network as we see fit...
+
+
+# Refactor timeeeeeeeeeee 
+
+1. Move accounts to be it's own thing
+2. Expose everything in `gaboon`

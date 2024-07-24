@@ -182,6 +182,9 @@ cython_debug/
 .env*
 out/
 build/
+.password.unsafe
+.password
+.password*
 """
 
 COUNTER_CONTRACT_PATH = f"{SRC_FOLDER}/Counter.vy"

@@ -35,6 +35,10 @@ GABOON_PROFILE_ENV_VAR = "GABOON_PROFILE"
 FOUNDRY_PROFILE_ENV_VAR = "FOUNDRY_PROFILE"
 DEFAULT_PROFILE_NAME = "default"
 
+# Data for Keystores
+DEFAULT_DATA_PATH = Path.home() / ".gaboon"
+DATA_SUBFOLDERS = "keystores"
+
 
 class GaboonConfig:
     # Attributes
@@ -42,6 +46,7 @@ class GaboonConfig:
     active_profile: str | None
     config_data: dict
     networks: Networks
+    data_path: str
 
     # Constructors
     # ========================================================================
@@ -54,6 +59,7 @@ class GaboonConfig:
             self._init_from_path(config_source)
         elif config_source is None:
             self.set_config_data(GABOON_DEFAULT_CONFIG)
+        self.data_path = DEFAULT_DATA_PATH
 
     def _init_from_path(self, config_path: Path):
         config_data = self.read_gaboon_config(config_path)

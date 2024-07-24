@@ -1,7 +1,7 @@
 import subprocess
 import tempfile
 from pathlib import Path
-from gaboon.project.project_class import Project
+from gaboon.project import Project
 
 from tests.base_test import assert_files_and_folders_exist
 

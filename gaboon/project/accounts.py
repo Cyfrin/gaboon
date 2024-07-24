@@ -1,23 +1,43 @@
-from typing import List
+import json
+from pathlib import Path
+from typing import Any, List, Union
 from eth_account import Account as EthAccountClass
 from eth_account.signers.local import (
     LocalAccount,
 )
 
 
-# TODO, this should probably be in its own folder/file
-# TODO, same with networks
-class Account(LocalAccount):
-    name: str
-    # TODO, make this locked and unlocked
-    key: str | int
+class GaboonBaseAccount(EthAccountClass):
+    address: str
 
-    def __init__(self, name: str, key: str | int):
-        self.name = name
-        self.key = key
+    def __init__(self, address: str):
+        self.address = address
 
     def __repr__(self):
-        return f"Account('{self.name}')"
+        return f"BaseAccount('{self.address}')"
+
+    def __hash__(self) -> int:
+        return hash(self.address)
+
+    def __str__(self) -> str:
+        return self.address
+
+    def __eq__(self, other: Union[object, str]) -> bool:
+        if isinstance(other, str):
+            return other == self.address
+        if isinstance(other, GaboonBaseAccount):
+            return other.address == self.address
+        return super().__eq__(other)
+
+
+class GaboonAccount(GaboonBaseAccount):
+    keystore_path: Path
+    password_file: Path
+
+    def __init__(self, keystore_path: str):
+        self.keystore_path = keystore_path
+        self.password_file = None
+        self.address = None
 
 
 class Accounts(EthAccountClass):

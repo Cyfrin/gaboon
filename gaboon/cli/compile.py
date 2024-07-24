@@ -1,5 +1,5 @@
 from pathlib import Path
-from gaboon.project.project_class import Project
+from gaboon.project import Project
 from vyper.compiler.phases import CompilerData
 import json
 from gaboon.logging import logger

@@ -2,7 +2,7 @@ from io import StringIO
 from typing import List, Any
 import sys
 from pathlib import Path
-from gaboon.project.project_class import Project
+from gaboon.project import Project
 import importlib.util
 from gaboon.logging import logger
 from gaboon.project.networks import DEVELOPMENT_NETWORK_NAME
