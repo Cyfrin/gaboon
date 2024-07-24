@@ -14,7 +14,7 @@ A fast, pythonic, Vyper smart contract testing and development framework.
 - [x] Compile vyper projects (`gab compile`/`gab build`)
 - [x] Deploy vyper projects (`gab run <script>`)
   - [x] Deploy locally (boa VM)
-  - [ ] Deploy to a testnet
+  - [x] Deploy to a testnet
   - [ ] Deploy to a mainnet
   - [ ] Deploy to a forked network
 - [ ] Test vyper projects (`gab test`)
@@ -53,3 +53,12 @@ The Gaboon viper (Bitis gabonica), also called the Gaboon adder, is a viper spec
 # Gaboon Viper
 
 > The Gaboon viper (Bitis gabonica), also called the Gaboon adder, is a viper species found in the rainforests and savannas of sub-Saharan Africa. Like all other vipers, it is venomous. It is the largest member of the genus Bitis, and has the longest fangs of any venomous snake – up to 2 inches (5 cm) in length – and the highest venom yield of any snake. No subspecies are recognized.
+
+
+# NOTES
+
+Brownie -> Wrapped up `Account` objects into a few sub-classes so they could be worked with more easily, and kept encrypted for stuff.
+
+Boa -> Puts all account info into the network ENV that is active. 
+
+So for Gaboon... We will want to store it at a higher level, and then pass it down to the network as we see fit...

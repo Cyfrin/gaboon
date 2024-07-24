@@ -1,5 +1,7 @@
 from typing import Any, Dict, Optional, Union
 from gaboon.logging import logger
+from eth_account import Account
+
 
 DEFAULT_NETWORK_NAME = "default_network"
 DEVELOPMENT_NETWORK_NAME = "development"
@@ -10,11 +12,16 @@ DEVELOPMENT_NETWORK_DICT = {
         "url": "",
         "chain_id": 1337,
         "default_account": "anvil_key",
+        "name": DEVELOPMENT_NETWORK_NAME,
     }
 }
 
 
 class Network:
+    name: str
+    default_account: Account
+    accounts: Dict[str, Account]
+
     def __init__(self, network_data: dict):
         for key, value in network_data.items():
             setattr(self, key, value)
@@ -26,14 +33,16 @@ class Network:
         return self.__repr__()
 
     def __eq__(self, other):
-        if not isinstance(other, Network):
-            return False
-        return self.__dict__ == other.__dict__
+        if isinstance(other, dict):
+            return self.__dict__ == other
+        if isinstance(other, Network):
+            return self.__dict__ == other.__dict__
+        return False
 
 
 class Networks:
     _networks: Dict[str, Network]
-    active_network: Network
+    active_network_name: str
 
     def __init__(
         self, networks: Dict[str, dict], active_network_name: str | None = None
@@ -69,9 +78,24 @@ class Networks:
         return self.__repr__()
 
     def __eq__(self, other):
-        if not isinstance(other, Networks):
-            return False
-        return self._networks == other._networks
+        if isinstance(other, Networks):
+            return (
+                self._networks == other._networks
+                and self.active_network_name == other.active_network_name
+            )
+        elif isinstance(other, dict):
+            # we ignore active_network_name for dicts... for now?
+            return self._networks == other
+        return False
+
+    def __delitem__(self, key: str):
+        if key in self._networks:
+            del self._networks[key]
+        else:
+            raise KeyError(key)
+
+    def get(self, key, default=None):
+        return self._networks.get(key, default)
 
     def update(self, other: Dict[str, dict]):
         for key, value in other.items():
@@ -80,7 +104,7 @@ class Networks:
     def set_active_network(self, active_network_name: str | None):
         if active_network_name is None:
             active_network_name = DEVELOPMENT_NETWORK_NAME
-        self.active_network: Network = self._networks[active_network_name]
+        self.active_network_name: str = active_network_name
 
     def add_network(
         self,
@@ -122,3 +146,7 @@ class Networks:
     @property
     def networks(self) -> Dict[str, Network]:
         return self._networks
+
+    @property
+    def active_network(self) -> Network:
+        return self._networks[self.active_network_name]

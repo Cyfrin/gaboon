@@ -1,7 +1,7 @@
 import os
 import tomllib
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Union
 import json
 from gaboon.logging import logger
 from gaboon.project.networks import (
@@ -41,7 +41,6 @@ class GaboonConfig:
     # ========================================================================
     active_profile: str | None
     config_data: dict
-    active_profile_data: dict
     networks: Networks
 
     # Constructors
@@ -89,28 +88,43 @@ class GaboonConfig:
             else:
                 self.active_profile = DEFAULT_PROFILE_NAME
         self.config_data = config_data
-        self.active_profile_data = self.config_data["profile"][self.active_profile]
-        self.add_mesc_endpoints(self.active_profile_data.get("mesc_path", None))
+        self.add_mesc_endpoints_to_config(
+            self.active_profile_data.get("mesc_path", None)
+        )
         self._load_networks()
 
-    def add_mesc_endpoints(self, mesc_path: Path | None = None):
-        if mesc_path is not None and mesc_path != "":
-            with open(mesc_path, "r") as file:
-                if ENDPOINTS_CONFIG_NAME not in self.config_data:
-                    self.config_data[ENDPOINTS_CONFIG_NAME] = {}
-                self.config_data[ENDPOINTS_CONFIG_NAME].update(
-                    # in mesc, they are called "endpoints"
-                    # https://github.com/paradigmxyz/mesc/tree/main
-                    json.load(file).get("endpoints", {})
-                )
-        else:
+    def add_mesc_endpoints_to_config(
+        self, mesc_path: Optional[Path] = None, load_networks_after: bool = True
+    ):
+        """
+        Adds endpoints using the MESC format.
+        https://github.com/paradigmxyz/mesc
+
+        Args:
+            mesc_path: The path of the `mesc.json` file. If None, defaults to ~/mesc.json.
+            load_networks_after: Whether to load the networks after adding the endpoints.
+
+        Returns:
+            bool: True if endpoints were successfully added, False otherwise.
+        """
+        if mesc_path is None:
             mesc_path = Path.home() / "mesc.json"
-            if mesc_path.exists():
-                self.add_mesc_endpoints(mesc_path)
-            else:
-                logger.warning(
-                    f"No mesc_ath given or mesc.json file found at {mesc_path}"
-                )
+
+        if not mesc_path.exists():
+            logger.warning(f"MESC file not found at {mesc_path}, nothing loaded")
+            return
+
+        with mesc_path.open("r") as file:
+            mesc_data = json.load(file)
+            endpoints = mesc_data.get("endpoints", {})
+
+            if ENDPOINTS_CONFIG_NAME not in self.config_data:
+                self.config_data[ENDPOINTS_CONFIG_NAME] = {}
+            self.config_data[ENDPOINTS_CONFIG_NAME].update(endpoints)
+        logger.info(f"Successfully added MESC endpoints from {mesc_path}")
+
+        if load_networks_after:
+            self._load_networks()
 
     def change_profile(self, new_profile: str):
         self.set_active_profile(new_profile)
@@ -133,11 +147,16 @@ class GaboonConfig:
     # Internal Methods
     # ========================================================================
     def _load_networks(self):
-        config_data = self.config_data
-        self.networks = Networks(config_data[ENDPOINTS_CONFIG_NAME])
+        if self.config_data.get(ENDPOINTS_CONFIG_NAME, None) is None:
+            self.config_data[ENDPOINTS_CONFIG_NAME] = DEVELOPMENT_NETWORK_DICT
+        self.networks = Networks(self.config_data[ENDPOINTS_CONFIG_NAME])
 
     # Properties
     # ========================================================================
     @property
     def active_network(self) -> Network:
         return self.networks.active_network
+
+    @property
+    def active_profile_data(self) -> dict:
+        return self.config_data["profile"][self.active_profile]

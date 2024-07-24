@@ -1,9 +1,11 @@
+from io import StringIO
 from typing import List, Any
 import sys
 from pathlib import Path
 from gaboon.project.project_class import Project
 import importlib.util
 from gaboon.logging import logger
+from gaboon.project.networks import DEVELOPMENT_NETWORK_NAME
 
 
 def main(args: List[Any]) -> int:
@@ -18,7 +20,7 @@ def run_script(root: Path | str, script_name_or_path: Path | str):
 
 def run_script_by_project(
     project: Project, script_name_or_path: Path | str, root: Path | str | None = None
-):
+) -> Any:
     if root is None:
         root = project.root
     script_path: Path = get_script_path(project, script_name_or_path)
@@ -40,13 +42,17 @@ def run_script_by_project(
         logger.error(f"Cannot find loader for '{script_path}'")
         sys.exit(1)
 
-    if project.active_network.url != "" and project.active_network.url is not None:
+    # We don't want to set a URL if we are using the "boa VM... I think"
+    if not hasattr(project.boa.env, "_rpc") and (
+        project.networks.get("active_network", {}).get("name", None) is not None
+    ):
         project.set_boa_network_env()
     module.__dict__["boa"] = project.boa
     spec.loader.exec_module(module)
 
     if hasattr(module, "main") and callable(module.main):
-        module.main()
+        result = module.main()
+        return result
     else:
         logger.info("No main() function found. Executing script as is...")
     sys.path.pop(0)
