@@ -19,12 +19,17 @@ DEVELOPMENT_NETWORK_DICT = {
 
 class Network:
     name: str
-    default_account: Account
     accounts: Dict[str, Account]
+    default_account_name: str
 
-    def __init__(self, network_data: dict):
+    def __init__(self, network_data: dict, default_account_name: str | None = None):
+        self.name = ""
+        self.accounts = {}
+        self.default_account_name = ""
+
         for key, value in network_data.items():
             setattr(self, key, value)
+        self.default_account_name = default_account_name
 
     def __repr__(self):
         return f"Network({self.__dict__})"
@@ -38,6 +43,38 @@ class Network:
         if isinstance(other, Network):
             return self.__dict__ == other.__dict__
         return False
+
+    def add_account(self, account: Account | str):
+        if isinstance(account, str):
+            account = Account(account)
+        if account.name in self.accounts:
+            raise ValueError(f"Account {account.name} already exists in network")
+        self.accounts[account.name] = account
+
+    @property
+    def default_account(self) -> Account:
+        return self.accounts[self.default_account_name]
+
+    @default_account.setter
+    def default_account(self, new_default_account: Account | str):
+        if isinstance(new_default_account, Account):
+            self.default_account_name = (
+                new_default_account.name
+            )  # Assuming Account has a 'name' attribute
+            if new_default_account not in self.accounts:
+                self.add_account(new_default_account)
+        elif isinstance(new_default_account, str):
+            self.default_account_name = new_default_account
+            if new_default_account not in self.accounts:
+                # Try to add it...
+
+                raise ValueError(
+                    f"Account {new_default_account} not found in network accounts. Add it with add_account."
+                )
+        else:
+            raise ValueError(
+                "Default account must be an Account object or the name of an account."
+            )
 
 
 class Networks:
@@ -53,7 +90,6 @@ class Networks:
 
         if DEVELOPMENT_NETWORK_NAME not in self._networks:
             self.update(DEVELOPMENT_NETWORK_DICT)
-
         self.set_active_network(active_network_name)
 
     def __getitem__(self, key: str) -> Network:

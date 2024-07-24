@@ -1,0 +1,30 @@
+[profile.default]
+src = "src"
+test = "tests"
+script = "script"
+out = "out"
+libs = ["lib"]
+remappings = []
+mesc_path = ""
+default_network = "fake_sepolia"
+
+# This is your overall default account, network specific accounts will override this.
+# You will use the anvil default account for development purposes, unless otherwise specified. 
+default_account = "my_account"
+
+[networks.fake_sepolia]
+# anvil -p 8555
+url = "http://127.0.0.1:8555"
+name = "fake_sepolia"
+
+[networks.fake_mainnet]
+# anvil -p 8556
+url = "http://127.0.0.1:8556"
+name = "fake_mainnet"
+accounts = ["main_account"]
+
+[networks.fake_zksync]
+# anvil -p 8557
+url = "http://127.0.0.1:8557"
+name = "fake_zksync"
+accounts = ["${ZKSYNC_MAINNET_KEY}", "other_account", "another_account"]

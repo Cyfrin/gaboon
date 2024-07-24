@@ -6,7 +6,12 @@ from gaboon.project.gaboon_config import GaboonConfig
 import json
 import sys
 
-from .base_test import COUNTER_PROJECT_PATH, MESC_CONFIG_PATH
+from .base_test import (
+    COUNTER_PROJECT_PATH,
+    MESC_CONFIG_PATH,
+    ANVIL_SECOND_KEY,
+    COMPLEX_NETWORKING_TOML,
+)
 
 
 @pytest.fixture
@@ -36,3 +41,11 @@ def mesc_config_json():
 @pytest.fixture
 def gab_path():
     return os.path.join(os.path.dirname(sys.executable), "gab")
+
+
+@pytest.fixture
+def complex_gab_config(monkeypatch):
+    monkeypatch.setenv("GABOON_TEST_KEY", ANVIL_SECOND_KEY)
+    config: GaboonConfig = GaboonConfig(COMPLEX_NETWORKING_TOML)
+    yield config
+    monkeypatch.delenv("GABOON_TEST_KEY")

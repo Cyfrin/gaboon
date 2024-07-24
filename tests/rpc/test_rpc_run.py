@@ -1,7 +1,13 @@
 from typing import Any
 import pytest
 from tests.utils.anvil import AnvilProcess
-from tests.base_test import COUNTER_PROJECT_PATH, COUNTER_PROJECT_FILE_PATH
+from tests.base_test import (
+    COUNTER_PROJECT_PATH,
+    COUNTER_PROJECT_FILE_PATH,
+    ANVIL_NETWORK,
+    ANVIL_DEFAULT_KEY,
+    ANVIL_SECOND_KEY,
+)
 from gaboon.project.project_class import Project
 from gaboon.cli.run import run_script_by_project
 from gaboon.project.accounts import Accounts, Account
@@ -9,9 +15,6 @@ from gaboon.project.accounts import Accounts, Account
 
 # This will skip all the tests in here.
 pytestmark = pytest.mark.integration
-
-ANVIL_NETWORK = {"url": "http://127.0.0.1:8545", "name": "anvil", "chain_id": 1337}
-ANVIL_DEFAULT_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 
 def test_deploy_to_anvil():

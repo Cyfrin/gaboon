@@ -107,7 +107,7 @@ class GaboonConfig:
         Returns:
             bool: True if endpoints were successfully added, False otherwise.
         """
-        if mesc_path is None:
+        if mesc_path is None or mesc_path == "":
             mesc_path = Path.home() / "mesc.json"
 
         if not mesc_path.exists():
@@ -149,7 +149,15 @@ class GaboonConfig:
     def _load_networks(self):
         if self.config_data.get(ENDPOINTS_CONFIG_NAME, None) is None:
             self.config_data[ENDPOINTS_CONFIG_NAME] = DEVELOPMENT_NETWORK_DICT
-        self.networks = Networks(self.config_data[ENDPOINTS_CONFIG_NAME])
+        active_network_name = (
+            self.active_profile_data["default_network"]
+            if self.active_profile_data.get("default_network", None)
+            else DEVELOPMENT_NETWORK_NAME
+        )
+        self.networks = Networks(
+            self.config_data[ENDPOINTS_CONFIG_NAME],
+            active_network_name=active_network_name,
+        )
 
     # Properties
     # ========================================================================

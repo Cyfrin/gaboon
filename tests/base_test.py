@@ -5,6 +5,18 @@ from gaboon.utils._cli_constants import (
     PROJECT_FOLDERS,
 )
 
+ANVIL_NETWORK = {"url": "http://127.0.0.1:8545", "name": "anvil", "chain_id": 1337}
+ANVIL_DEFAULT_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+ANVIL_SECOND_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+
+COMPLEX_NETWORKING_TOML = Path(__file__).parent.joinpath(
+    "data/test_configs/complex_networking/gaboon.toml"
+)
+
+COMPLEX_NETWORKING_PROJECT_PATH = Path(__file__).parent.joinpath(
+    "data/test_projects/gaboon_networking_monstrosity"
+)
+
 COUNTER_PROJECT_PATH = Path(__file__).parent.joinpath(
     "data/test_projects/gaboon_project"
 )
