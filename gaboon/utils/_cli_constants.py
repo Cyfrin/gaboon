@@ -1,3 +1,6 @@
+from pathlib import Path
+
+
 SRC_FOLDER = "src"
 README_PATH = "README.md"
 GABOON_CONFIG_PATH = "gaboon.toml"
@@ -217,3 +220,5 @@ gab compile
 
 _For documentation, please run `gab --help` or visit [the Gaboon documentation](https://github.com/Cyfrin/gaboon)_
 """
+
+DEFAULT_KEYSTORES_PATH = Path.home().joinpath(".foundry/keystores")

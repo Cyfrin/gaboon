@@ -30,7 +30,7 @@ class GaboonBaseAccount(EthAccountClass):
         return super().__eq__(other)
 
 
-class GaboonAccount(GaboonBaseAccount):
+class Account(GaboonBaseAccount):
     keystore_path: Path
     password_file: Path
 
@@ -48,9 +48,16 @@ class Accounts(EthAccountClass):
         self._accounts = []
         self._name_map = {}
 
-    def add(self, account):
-        self._accounts.append(account)
-        self._name_map[account.name] = account
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, dict):
+            return self._name_map == other
+        if len(self._accounts) != len(other._accounts):
+            return False
+        if not isinstance(other, Accounts):
+            return NotImplemented
+        if self._name_map != other._name_map:
+            return False
+        return True
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -75,4 +82,8 @@ class Accounts(EthAccountClass):
         return iter(self._accounts)
 
     def __repr__(self):
-        return f"AccountContainer({self._accounts})"
+        return f"Accounts({self._accounts})"
+
+    def add(self, account):
+        self._accounts.append(account)
+        self._name_map[account.name] = account

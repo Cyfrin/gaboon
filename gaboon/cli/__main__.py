@@ -28,6 +28,7 @@ def main(argv: list) -> int:
     sub_parsers = main_parser.add_subparsers(dest="command")
 
     # Init command
+    # ========================================================================
     init_parser = sub_parsers.add_parser(
         "init",
         help="Initialize a new project.",
@@ -59,6 +60,7 @@ This will create a basic directory structure at the path you specific, which loo
     )
 
     # Compile command
+    # ========================================================================
     sub_parsers.add_parser(
         "compile",
         help="Compiles the project.",
@@ -74,6 +76,7 @@ Use this command to prepare your contracts for deployment or testing.""",
     )
 
     # Run command
+    # ========================================================================
     run_parser = sub_parsers.add_parser(
         "run",
         help="Runs a script with the project's context.",
@@ -92,6 +95,97 @@ Use this command to prepare your contracts for deployment or testing.""",
         nargs="?",
     )
 
+    # Wallet command
+    # ========================================================================
+    wallet_parser = sub_parsers.add_parser(
+        "wallet",
+        help="Wallet management utilities.",
+        description="Wallet management utilities.\n",
+    )
+    wallet_subparsers = wallet_parser.add_subparsers(dest="wallet_command")
+
+    # List
+    wallet_subparsers.add_parser(
+        "list",
+        aliases=["ls"],
+        help="List all the accounts in the keystore default directory",
+    )
+
+    # Generate
+    generate_parser = wallet_subparsers.add_parser(
+        "generate",
+        aliases=["g"],
+        help="Create a new account with a random private key",
+    )
+    generate_parser.add_argument("name", help="Name of account")
+    generate_parser.add_argument("--save", help="Save to keystore", action="store_true")
+    # Create a group for password options
+    password_group = generate_parser.add_mutually_exclusive_group()
+    password_group.add_argument("--password", help="Password for the keystore")
+    password_group.add_argument(
+        "--password-file",
+        help="File containing the password for the keystore",
+    )
+    # Add custom validation
+    generate_parser.set_defaults(func=validate_generate_args)
+
+    # Address
+    address_parser = wallet_subparsers.add_parser(
+        "address", aliases=["a", "addr"], help="Convert a private key to an address"
+    )
+    address_parser.add_argument("private_key", help="Private key to convert")
+
+    # Sign
+    sign_parser = wallet_subparsers.add_parser(
+        "sign", aliases=["s"], help="Sign a message or typed data"
+    )
+    sign_parser.add_argument("message", help="Message or typed data to sign")
+    sign_parser.add_argument("--private-key", help="Private key to sign with")
+
+    # Verify
+    verify_parser = wallet_subparsers.add_parser(
+        "verify", aliases=["v"], help="Verify the signature of a message"
+    )
+    verify_parser.add_argument("message", help="Original message")
+    verify_parser.add_argument("signature", help="Signature to verify")
+    verify_parser.add_argument("address", help="Address of the signer")
+
+    # Import
+    import_parser = wallet_subparsers.add_parser(
+        "import", aliases=["i"], help="Import a private key into an encrypted keystore"
+    )
+    import_parser.add_argument("private_key", help="Private key to import")
+
+    # Export
+    export_parser = wallet_subparsers.add_parser(
+        "export", aliases=["e"], help="Export an existing account keystore file"
+    )
+    export_parser.add_argument("address", help="Address of the account to export")
+
+    # Password
+    password_parser = wallet_subparsers.add_parser(
+        "password", help="Change the password of an existing account"
+    )
+    password_parser.add_argument(
+        "address", help="Address of the account to change password"
+    )
+
+    # Private Key
+    private_key_parser = wallet_subparsers.add_parser(
+        "private-key", aliases=["pk"], help="Derives private key from mnemonic"
+    )
+    private_key_parser.add_argument("mnemonic", help="Mnemonic phrase")
+
+    # Decrypt Keystore
+    decrypt_keystore_parser = wallet_subparsers.add_parser(
+        "decrypt-keystore",
+        aliases=["dk"],
+        help="Decrypt a keystore file to get the private key",
+    )
+    decrypt_keystore_parser.add_argument(
+        "keystore_file", help="Path to the keystore file"
+    )
+
     # Parsing starts
     if len(argv) == 0 or (len(argv) == 1 and (argv[0] == "-h" or argv[0] == "--help")):
         main_parser.print_help()
@@ -100,22 +194,20 @@ Use this command to prepare your contracts for deployment or testing.""",
 
     set_log_level(quiet=args.quiet, debug=args.debug)
 
-    try:
-        project_root: Path = Project.find_project_root()
-    except FileNotFoundError:
-        if args.command != "init":
-            logger.error(
-                "Not in a Gaboon project (or any of the parent directories).\nTry to create a gaboon.toml file with `gab init` "
-            )
-            return 1
-        project_root = Path.cwd()
+    if args.command != "wallet":
+        try:
+            project_root: Path = Project.find_project_root()
+        except FileNotFoundError:
+            if args.command != "init":
+                logger.error(
+                    "Not in a Gaboon project (or any of the parent directories).\nTry to create a gaboon.toml file with `gab init` "
+                )
+                return 1
+            project_root = Path.cwd()
+        if args.command == "build":
+            args.command = "compile"
+        args.project_root = project_root
 
-    # Alias overrides
-    if args.command == "build":
-        args.command = "compile"
-
-    # Add project_root and config to args
-    args.project_root = project_root
     logger.info(f"Running {args.command} command...")
     if args.command:
         importlib.import_module(f"gaboon.cli.{args.command}").main(args)
@@ -131,6 +223,13 @@ def get_version() -> int:
         gaboon_data = tomllib.load(f)
         logger.info(GAB_VERSION_STRING.format(gaboon_data["project"]["version"]))
         return 0
+
+
+def validate_generate_args(args):
+    if args.save and not (args.password or args.password_file):
+        raise argparse.ArgumentTypeError(
+            "When using --save, you must provide either --password or --password-file"
+        )
 
 
 if __name__ == "__main__":

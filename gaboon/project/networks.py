@@ -44,36 +44,29 @@ class Network:
             return self.__dict__ == other.__dict__
         return False
 
-    # def add_account(self, account: Account | str):
-    #     if isinstance(account, str):
-    #         account = Account(account)
-    #     if account.name in self.accounts:
-    #         raise ValueError(f"Account {account.name} already exists in network")
-    #     self.accounts[account.name] = account
+    def __getitem__(self, key):
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            raise KeyError(key)
 
-    # @property
-    # def default_account(self) -> Account:
-    #     return self.accounts[self.default_account_name]
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
 
-    # @default_account.setter
-    # def default_account(self, new_default_account: Account | str):
-    #     if isinstance(new_default_account, Account):
-    #         self.default_account_name = (
-    #             new_default_account.name
-    #         )  # Assuming Account has a 'name' attribute
-    #         if new_default_account not in self.accounts:
-    #             self.add_account(new_default_account)
-    #     elif isinstance(new_default_account, str):
-    #         self.default_account_name = new_default_account
-    #         if new_default_account not in self.accounts:
-    #             # Try to add it...
-    #             raise ValueError(
-    #                 f"Account {new_default_account} not found in network accounts. Add it with add_account."
-    #             )
-    #     else:
-    #         raise ValueError(
-    #             "Default account must be an Account object or the name of an account."
-    #         )
+    def __contains__(self, key):
+        return hasattr(self, key)
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
+    def keys(self):
+        return self.__dict__.keys()
+
+    def values(self):
+        return self.__dict__.values()
+
+    def items(self):
+        return self.__dict__.items()
 
 
 class Networks:
@@ -128,6 +121,30 @@ class Networks:
             del self._networks[key]
         else:
             raise KeyError(key)
+
+    def __getattr__(self, name: str) -> Network:
+        if name in self._networks:
+            return self._networks[name]
+        raise AttributeError(f"'Networks' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: Union[Network, dict]):
+        if name in ["_networks", "active_network_name"]:
+            # Allow setting of internal attributes
+            super().__setattr__(name, value)
+        else:
+            # Treat other attributes as networks
+            if isinstance(value, Network):
+                self._networks[name] = value
+            elif isinstance(value, dict):
+                self._networks[name] = Network(value)
+            else:
+                raise ValueError("Network must be a Network object or a dict.")
+
+    def __delattr__(self, name: str):
+        if name in self._networks:
+            del self._networks[name]
+        else:
+            raise AttributeError(f"'Networks' object has no attribute '{name}'")
 
     def get(self, key, default=None):
         return self._networks.get(key, default)
