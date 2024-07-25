@@ -114,7 +114,7 @@ Use this command to prepare your contracts for deployment or testing.""",
     # Generate
     generate_parser = wallet_subparsers.add_parser(
         "generate",
-        aliases=["g"],
+        aliases=["g", "new"],
         help="Create a new account with a random private key",
     )
     generate_parser.add_argument("name", help="Name of account")
@@ -129,46 +129,11 @@ Use this command to prepare your contracts for deployment or testing.""",
     # Add custom validation
     generate_parser.set_defaults(func=validate_generate_args)
 
-    # Address
-    address_parser = wallet_subparsers.add_parser(
-        "address", aliases=["a", "addr"], help="Convert a private key to an address"
-    )
-    address_parser.add_argument("private_key", help="Private key to convert")
-
-    # Sign
-    sign_parser = wallet_subparsers.add_parser(
-        "sign", aliases=["s"], help="Sign a message or typed data"
-    )
-    sign_parser.add_argument("message", help="Message or typed data to sign")
-    sign_parser.add_argument("--private-key", help="Private key to sign with")
-
-    # Verify
-    verify_parser = wallet_subparsers.add_parser(
-        "verify", aliases=["v"], help="Verify the signature of a message"
-    )
-    verify_parser.add_argument("message", help="Original message")
-    verify_parser.add_argument("signature", help="Signature to verify")
-    verify_parser.add_argument("address", help="Address of the signer")
-
     # Import
     import_parser = wallet_subparsers.add_parser(
         "import", aliases=["i"], help="Import a private key into an encrypted keystore"
     )
-    import_parser.add_argument("private_key", help="Private key to import")
-
-    # Export
-    export_parser = wallet_subparsers.add_parser(
-        "export", aliases=["e"], help="Export an existing account keystore file"
-    )
-    export_parser.add_argument("address", help="Address of the account to export")
-
-    # Password
-    password_parser = wallet_subparsers.add_parser(
-        "password", help="Change the password of an existing account"
-    )
-    password_parser.add_argument(
-        "address", help="Address of the account to change password"
-    )
+    import_parser.add_argument("name", help="Name of account to import")
 
     # Private Key
     private_key_parser = wallet_subparsers.add_parser(
@@ -184,6 +149,17 @@ Use this command to prepare your contracts for deployment or testing.""",
     )
     decrypt_keystore_parser.add_argument(
         "keystore_file", help="Path to the keystore file"
+    )
+    decrypt_keystore_parser.add_argument("password", help="Password to decrypt")
+
+    # Delete
+    decrypt_keystore_parser = wallet_subparsers.add_parser(
+        "delete",
+        aliases=["d"],
+        help="Delete a keystore file",
+    )
+    decrypt_keystore_parser.add_argument(
+        "keystore_file_name", help="Name of keystore file"
     )
 
     # Parsing starts
@@ -206,6 +182,8 @@ Use this command to prepare your contracts for deployment or testing.""",
             project_root = Path.cwd()
         if args.command == "build":
             args.command = "compile"
+        if args.command == "new":
+            args.command = "generate"
         args.project_root = project_root
 
     logger.info(f"Running {args.command} command...")

@@ -6,13 +6,10 @@ Usage: gab wallet <COMMAND>
 Commands:
   list              List all the accounts in the keystore default directory [aliases: ls]
   generate          Add a new account with a random private key [aliases: g]
-  address           Convert a private key to an address [aliases: a, addr]
   sign              Sign a message or typed data [aliases: s]
   verify            Verify the signature of a message [aliases: v]
   import            Import a private key into an encrypted keystore [aliases: i]
-  export            Export an existing account keystore file [aliases: e]
   password          Change the password of an existing account
-  private-key       Derives private key from mnemonic [aliases: pk]
   decrypt-keystore  Decrypt a keystore file to get the private key [aliases: dk]
   help              Print this message or the help of the given subcommand(s)
 
@@ -21,7 +18,9 @@ Options:
 """
 
 import json
+import getpass
 from pathlib import Path
+import shutil
 from typing import Any, List
 from gaboon.project import Project
 from gaboon.logging import logger
@@ -41,22 +40,12 @@ def main(args: List[Any]) -> int:
             password=args.password,
             password_file=args.password_file,
         )
-    elif args.wallet_command == "address":
-        return convert_to_address(args.private_key)
-    elif args.wallet_command == "sign":
-        return sign_message(args.message, args.private_key)
-    elif args.wallet_command == "verify":
-        return verify_signature(args.message, args.signature, args.address)
     elif args.wallet_command == "import":
-        return import_private_key(args.private_key)
-    elif args.wallet_command == "export":
-        return export_account(args.address)
-    elif args.wallet_command == "password":
-        return change_password(args.address)
-    elif args.wallet_command == "private-key":
-        return derive_private_key(args.mnemonic)
+        return import_private_key(args.name)
     elif args.wallet_command == "decrypt-keystore":
-        return decrypt_keystore(args.keystore_file)
+        return decrypt_keystore(args.keystore_file, args.password)
+    elif args.wallet_command == "delete":
+        return delete_keystore(args.keystore_file_name)
     else:
         logger.error(f"Unknown accounts command: {args.wallet_command}")
         return 1
@@ -137,50 +126,61 @@ def save_to_keystores(
     logger.info(f"Saved account {name} to keystores!")
 
 
-def convert_to_address(project: Project, private_key: str) -> int:
-    logger.info(f"Converting private key to address...")
-    # Implement conversion logic here
-    return 0
-
-
-def sign_message(project: Project, message: str, private_key: str) -> int:
-    logger.info(f"Signing message...")
-    # Implement message signing logic here
-    return 0
-
-
-def verify_signature(
-    project: Project, message: str, signature: str, address: str
-) -> int:
-    logger.info(f"Verifying signature...")
-    # Implement signature verification logic here
-    return 0
-
-
-def import_private_key(project: Project, private_key: str) -> int:
+def import_private_key(name: str) -> int:
     logger.info(f"Importing private key...")
-    # Implement private key import logic here
-    return 0
+    while True:
+        private_key = getpass.getpass("Enter your private key: ")
+        if private_key:
+            break
+        logger.error("Private key cannot be empty. Please try again.")
+
+    # Step 2 & 3: Get password and confirmation
+    while True:
+        password = getpass.getpass("Enter a password to encrypt your key: ")
+        if not password:
+            logger.error("Password cannot be empty. Please try again.")
+            continue
+
+        password_confirm = getpass.getpass("Confirm your password: ")
+        if password == password_confirm:
+            break
+        logger.error("Passwords do not match. Please try again.")
+
+    new_account: LocalAccount = EthAccountsClass.from_key(private_key)
+    save_to_keystores(
+        name,
+        new_account,
+        password=password,
+    )
 
 
-def export_account(project: Project, address: str) -> int:
-    logger.info(f"Exporting account...")
-    # Implement account export logic here
-    return 0
+def delete_keystore(
+    keystore_file_name: str,
+    keystores_path: Path = DEFAULT_KEYSTORES_PATH,
+) -> int:
+    keystore_path = keystores_path.joinpath(keystore_file_name)
+
+    if not keystore_path.exists():
+        logger.error(
+            f"Account with name {keystore_file_name} does not exist in keystores"
+        )
+        return 1
+
+    try:
+        if keystore_path.is_dir():
+            shutil.rmtree(keystore_path)
+        else:
+            keystore_path.unlink()
+        logger.info(f"Successfully deleted account {keystore_file_name} from keystores")
+        return 0
+    except Exception as e:
+        logger.error(
+            f"Failed to delete account {keystore_file_name} from keystores: {str(e)}"
+        )
+        return 1
 
 
-def change_password(project: Project, address: str) -> int:
-    logger.info(f"Changing account password...")
-    # Implement password change logic here
-    return 0
-
-
-def derive_private_key(project: Project, mnemonic: str) -> int:
-    logger.info(f"Deriving private key from mnemonic...")
-    # Implement private key derivation logic here
-    return 0
-
-
+# TODO
 def decrypt_keystore(project: Project, keystore_file: str) -> int:
     logger.info(f"Decrypting keystore...")
     # Implement keystore decryption logic here

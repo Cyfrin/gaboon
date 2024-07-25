@@ -221,4 +221,5 @@ gab compile
 _For documentation, please run `gab --help` or visit [the Gaboon documentation](https://github.com/Cyfrin/gaboon)_
 """
 
+# DEFAULT_KEYSTORES_PATH = Path.home().joinpath(".foundry/keystores")
 DEFAULT_KEYSTORES_PATH = Path.home().joinpath(".foundry/keystores")
