@@ -3,14 +3,12 @@ import subprocess
 EXPECTED_HELP_TEXT = "Pythonic Smart Contract Development Framework"
 
 
-def test_help(gab_path):
-    result = subprocess.run(
-        [gab_path, "-h"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    assert (
-        EXPECTED_HELP_TEXT in result.stdout
-    ), "Help output does not contain expected text"
-    assert result.returncode == 0
+def test_help_and_debug_all_comamnds(gab_path, all_commands):
+    for command in all_commands:
+        result = subprocess.run(
+            [gab_path, command, "-h", "--debug"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0

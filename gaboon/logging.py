@@ -3,6 +3,8 @@ import logging
 
 class CustomFormatter(logging.Formatter):
     def format(self, record):
+        if record.levelno == logging.DEBUG:
+            return f"DEBUG: {record.getMessage()}"
         if record.levelno == logging.WARNING:
             return f"WARNING: {record.getMessage()}"
         elif record.levelno == logging.ERROR:

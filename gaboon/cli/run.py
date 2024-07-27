@@ -7,17 +7,24 @@ from gaboon.logging import logger
 
 
 def main(args: List[Any]) -> int:
-    run_script(args.project_root, args.script_name_or_path)
+    run_script(args.project_root, args.script_name_or_path, network_or_url=args.network)
     return 0
 
 
-def run_script(root: Path | str, script_name_or_path: Path | str):
+def run_script(
+    root: Path | str, script_name_or_path: Path | str, network_or_url: str | None = None
+):
     project = Project(root)
-    run_script_by_project(project, script_name_or_path, root)
+    run_script_by_project(
+        project, script_name_or_path, root, network_or_url=network_or_url
+    )
 
 
 def run_script_by_project(
-    project: Project, script_name_or_path: Path | str, root: Path | str | None = None
+    project: Project,
+    script_name_or_path: Path | str,
+    root: Path | str | None = None,
+    network_or_url: str | None = None,
 ) -> Any:
     if root is None:
         root = project.root
@@ -40,7 +47,8 @@ def run_script_by_project(
         logger.error(f"Cannot find loader for '{script_path}'")
         sys.exit(1)
 
-    # We don't want to set a URL if we are using the "boa VM... I think"
+    if network_or_url:
+        project.set_active_network(network_or_url)
     if not hasattr(project.boa.env, "_rpc") and (
         project.networks.get("active_network", {}).get("name", None) is not None
     ):

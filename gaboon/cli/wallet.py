@@ -22,7 +22,6 @@ import getpass
 from pathlib import Path
 import shutil
 from typing import Any, List
-from gaboon.project import Project
 from gaboon.logging import logger
 from gaboon.utils._cli_constants import DEFAULT_KEYSTORES_PATH
 from eth_account import Account as EthAccountsClass
@@ -30,8 +29,8 @@ from eth_account.signers.local import LocalAccount
 
 
 def main(args: List[Any]) -> int:
-    if args.wallet_command == "list":
-        list_accounts()
+    if args.wallet_command == "list" or args.wallet_command == "ls":
+        list_accounts(print_keystores=True)
         return 0
     elif args.wallet_command == "generate":
         return generate_account(
@@ -52,15 +51,17 @@ def main(args: List[Any]) -> int:
 
 
 def list_accounts(
-    keystores_path: Path = DEFAULT_KEYSTORES_PATH,
+    keystores_path: Path = DEFAULT_KEYSTORES_PATH, print_keystores: bool = False
 ) -> list[Any] | None:
     if keystores_path.exists():
         account_paths = sorted(keystores_path.glob("*"))
-        logger.info(
-            f"Found {len(account_paths)} account{'s' if len(account_paths)!=1 else ''}:"
-        )
+        if print_keystores:
+            logger.info(
+                f"Found {len(account_paths)} account{'s' if len(account_paths)!=1 else ''}:"
+            )
         for path in account_paths:
-            logger.info(f"{path.stem}")
+            if print_keystores:
+                logger.info(f"{path.stem}")
         return account_paths
     else:
         logger.info(f"No accounts found at {keystores_path}")
@@ -110,8 +111,6 @@ def save_to_keystores(
     if new_keystore_path.exists():
         logger.error(f"Account with name {name} already exists")
         return 1
-    new_keystore_path.mkdir(exist_ok=True)
-    json_file = new_keystore_path.joinpath(name).resolve()
     if password:
         encrypted: dict[str, Any] = account.encrypt(password)
     elif password_file:
@@ -121,7 +120,7 @@ def save_to_keystores(
     else:
         logger.error("No password provided to save account")
         return 1
-    with json_file.open("w") as fp:
+    with new_keystore_path.open("w") as fp:
         json.dump(encrypted, fp)
     logger.info(f"Saved account {name} to keystores!")
 
@@ -181,7 +180,7 @@ def delete_keystore(
 
 
 # TODO
-def decrypt_keystore(project: Project, keystore_file: str) -> int:
+def decrypt_keystore(keystore_file: str) -> int:
     logger.info(f"Decrypting keystore...")
     # Implement keystore decryption logic here
     return 0

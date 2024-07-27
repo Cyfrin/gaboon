@@ -1,10 +1,13 @@
 from pathlib import Path
 from typing import Any
 from types import ModuleType
-import threading
 
 from .gaboon_config import GaboonConfig
 from gaboon.logging import logger
+from gaboon.project.accounts import Account
+from eth_account.signers.local import (
+    LocalAccount,
+)
 
 
 class Project:
@@ -14,7 +17,6 @@ class Project:
     config: GaboonConfig
     project_path: Path
     _boa: ModuleType | None
-    _boa_lock: threading.Lock
 
     # Constructors
     # ========================================================================
@@ -22,7 +24,6 @@ class Project:
         self.root: Path = self.find_project_root(path or Path.cwd())
         self.config: GaboonConfig = self._load_config()
         self._boa: ModuleType | None = None
-        self._boa_lock: threading.Lock = threading.Lock()
 
     # Special Methods
     # ========================================================================
@@ -38,6 +39,16 @@ class Project:
             network_url = self.networks.active_network.url
         logger.debug(f"Setting boa network env to {self.networks.active_network.url}")
         self.boa.set_network_env(network_url)
+        self.set_boa_eoa()
+
+    def set_boa_eoa(self, eoa: Account | None = None):
+        if not eoa:
+            eoa: Account = self.default_account
+        if not eoa.unlocked:
+            eoa.prompt_for_unlock()
+        formatted_account: LocalAccount = Account.from_key(eoa.private_key)
+        self.boa.env.set_eoa(formatted_account)
+        logger.info(f"Set boa EOA to {formatted_account.address}")
 
     # Internal Methods
     # ========================================================================
@@ -76,17 +87,16 @@ class Project:
     @property
     def boa(self) -> ModuleType:
         if self._boa is None:
-            with self._boa_lock:
-                if self._boa is None:
-                    import boa
+            if self._boa is None:
+                import boa
 
-                    self._boa = boa
-                    self._boa.env = self._boa.Env()
-                    logger.debug(
-                        f"Project {id(self)}: Imported boa, env id: {id(self._boa.env)}"
-                    )
-                else:
-                    logger.debug(
-                        f"Project {id(self)}: Using existing boa, env id: {id(self._boa.env)}"
-                    )
+                self._boa = boa
+                self._boa.env = self._boa.Env()
+                logger.debug(
+                    f"Project {id(self)}: Imported boa, env id: {id(self._boa.env)}"
+                )
+            else:
+                logger.debug(
+                    f"Project {id(self)}: Using existing boa, env id: {id(self._boa.env)}"
+                )
         return self._boa

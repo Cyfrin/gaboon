@@ -13,17 +13,13 @@ def main(argv: list) -> int:
     if "--version" in argv or "version" in argv:
         return get_version()
 
+    parent_parser = create_parent_parser()
+
     main_parser = argparse.ArgumentParser(
         prog="Gaboon",
         description="🐍 Pythonic Smart Contract Development Framework",
         formatter_class=argparse.RawTextHelpFormatter,
-    )
-
-    main_parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run in debug mode"
-    )
-    main_parser.add_argument(
-        "-q", "--quiet", action="store_true", help="Suppress all output except errors"
+        parents=[parent_parser],
     )
     sub_parsers = main_parser.add_subparsers(dest="command")
 
@@ -43,6 +39,7 @@ This will create a basic directory structure at the path you specific, which loo
 └── tests/
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[parent_parser],
     )
     init_parser.add_argument(
         "path",
@@ -73,6 +70,7 @@ This command will:
 Use this command to prepare your contracts for deployment or testing.""",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         aliases=["build"],
+        parents=[parent_parser],
     )
 
     # Run command
@@ -81,6 +79,7 @@ Use this command to prepare your contracts for deployment or testing.""",
         "run",
         help="Runs a script with the project's context.",
         description="Runs a script with the project's context.",
+        parents=[parent_parser],
     )
     run_parser.add_argument(
         "script_name_or_path",
@@ -89,8 +88,17 @@ Use this command to prepare your contracts for deployment or testing.""",
         default="./script/deploy.py",
     )
     run_parser.add_argument(
+        "--network",
         "--rpc-url",
-        help="RPC of the EVM network you'd like to deploy this code to.",
+        "-n",
+        help="Network to run script on.",
+        type=str,
+        nargs="?",
+    )
+    run_parser.add_argument(
+        "--account",
+        "-a",
+        help="Account to run this script with.",
         type=str,
         nargs="?",
     )
@@ -99,8 +107,10 @@ Use this command to prepare your contracts for deployment or testing.""",
     # ========================================================================
     wallet_parser = sub_parsers.add_parser(
         "wallet",
+        aliases=["wallets", "w"],
         help="Wallet management utilities.",
         description="Wallet management utilities.\n",
+        parents=[parent_parser],
     )
     wallet_subparsers = wallet_parser.add_subparsers(dest="wallet_command")
 
@@ -109,6 +119,7 @@ Use this command to prepare your contracts for deployment or testing.""",
         "list",
         aliases=["ls"],
         help="List all the accounts in the keystore default directory",
+        parents=[parent_parser],
     )
 
     # Generate
@@ -116,6 +127,7 @@ Use this command to prepare your contracts for deployment or testing.""",
         "generate",
         aliases=["g", "new"],
         help="Create a new account with a random private key",
+        parents=[parent_parser],
     )
     generate_parser.add_argument("name", help="Name of account")
     generate_parser.add_argument("--save", help="Save to keystore", action="store_true")
@@ -170,6 +182,7 @@ Use this command to prepare your contracts for deployment or testing.""",
 
     set_log_level(quiet=args.quiet, debug=args.debug)
 
+    # Alias stuff
     if args.command != "wallet":
         try:
             project_root: Path = Project.find_project_root()
@@ -186,12 +199,24 @@ Use this command to prepare your contracts for deployment or testing.""",
             args.command = "generate"
         args.project_root = project_root
 
+    if args.command == "w" or args.command == "wallets":
+        args.command = "wallet"
+
     logger.info(f"Running {args.command} command...")
     if args.command:
         importlib.import_module(f"gaboon.cli.{args.command}").main(args)
     else:
         main_parser.print_help()
     return 0
+
+
+def create_parent_parser():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-d", "--debug", action="store_true", help="Run in debug mode")
+    parser.add_argument(
+        "-q", "--quiet", action="store_true", help="Suppress all output except errors"
+    )
+    return parser
 
 
 def get_version() -> int:

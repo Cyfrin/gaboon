@@ -1,3 +1,4 @@
+from typing import List
 import pytest
 import os
 import shutil
@@ -5,6 +6,7 @@ from gaboon.project import Project
 from gaboon.project.gaboon_config import GaboonConfig
 import json
 import sys
+from pathlib import Path
 
 from .base_test import (
     COUNTER_PROJECT_PATH,
@@ -49,3 +51,12 @@ def complex_gab_config(monkeypatch):
     config: GaboonConfig = GaboonConfig(COMPLEX_NETWORKING_TOML)
     yield config
     monkeypatch.delenv("GABOON_TEST_KEY")
+
+
+@pytest.fixture
+def all_commands():
+    cli_dir = Path(__file__).parent.parent.joinpath("gaboon/cli")
+    non_underscore_files: List[Path] = [
+        file.stem for file in cli_dir.rglob("[!_]*.py") if file.is_file()
+    ]
+    return non_underscore_files

@@ -1,4 +1,6 @@
+from ast import List
 import os
+import re
 import tomllib
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -13,6 +15,7 @@ from gaboon.project.networks import (
     DEVELOPMENT_NETWORK_DICT,
 )
 from gaboon.utils._cli_constants import DEFAULT_KEYSTORES_PATH
+from gaboon.project.accounts import Accounts
 
 DEFAULT_VYPER_VERSION = "0.4.0"
 
@@ -27,6 +30,7 @@ GABOON_DEFAULT_CONFIG = {
             "remappings": [],
             "mesc_path": "",
             DEFAULT_NETWORK_NAME: DEVELOPMENT_NETWORK_NAME,
+            "unsafe_account_keys": [],
         }
     },
     ENDPOINTS_CONFIG_NAME: DEVELOPMENT_NETWORK_DICT,
@@ -71,6 +75,10 @@ class GaboonConfig:
             return self.active_profile_data[name]
         if name in self.config_data:
             return self.config_data[name]
+        if name in self.networks:
+            return self.networks[name]
+        if hasattr(self.networks, name):
+            return getattr(self.networks, name)
         return getattr(self.config_data, name)
 
     def __repr__(self):
@@ -82,6 +90,13 @@ class GaboonConfig:
     # Public Methods
     # ========================================================================
     def set_config_data(self, config_data: dict, active_profile: str | None = None):
+        """The function that sets up the whole GaboonConfig object.
+
+        Args:
+            config_data (dict): This is the data from gaboon.toml file in dict format.
+            active_profile (str | None, optional): The name of the profile the user wants to set to active.
+            Defaults to None.
+        """
         if active_profile is None:
             active_profile = os.getenv(GABOON_PROFILE_ENV_VAR) or os.getenv(
                 FOUNDRY_PROFILE_ENV_VAR
@@ -94,7 +109,7 @@ class GaboonConfig:
         self.add_mesc_endpoints_to_config(
             self.active_profile_data.get("mesc_path", None)
         )
-        self._load_networks()
+        self._load_networks_and_accounts()
 
     def add_mesc_endpoints_to_config(
         self, mesc_path: Optional[Path] = None, load_networks_after: bool = True
@@ -127,7 +142,7 @@ class GaboonConfig:
         logger.info(f"Successfully added MESC endpoints from {mesc_path}")
 
         if load_networks_after:
-            self._load_networks()
+            self._load_networks_and_accounts()
 
     def change_profile(self, new_profile: str):
         self.set_active_profile(new_profile)
@@ -145,11 +160,46 @@ class GaboonConfig:
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
         with open(config_path, "rb") as f:
-            return tomllib.load(f)
+            config = tomllib.load(f)
+        return self._process_config_dict(config)
+
+    def get_global_unsafe_keys_from_config_data(
+        self, config_data: dict | None = None, active_profile: str | None = None
+    ) -> Accounts:
+        if config_data is None:
+            config_data = self.config_data
+        else:
+            config_data = self._process_config_dict(config_data)
+        if active_profile is None:
+            active_profile = self.active_profile
+        global_unsafe_keys: List[str] | dict | None = config_data["profile"][
+            active_profile
+        ].get("unsafe_account_keys", None)
+        return Accounts(global_unsafe_keys)
 
     # Internal Methods
     # ========================================================================
-    def _load_networks(self):
+    def _env_var_decoder(self, value: str) -> Any:
+        if isinstance(value, str):
+            # Regular expression to match ${ENV_VAR} or $ENV_VAR patterns
+            pattern = r"\$\{([^}]+)\}|\$([A-Za-z_][A-Za-z0-9_]*)"
+
+            def replace_env_var(match):
+                env_var = match.group(1) or match.group(2)
+                return os.environ.get(env_var, match.group(0))
+
+            return re.sub(pattern, replace_env_var, value)
+        return value
+
+    def _process_config_dict(self, config):
+        for key, value in config.items():
+            if isinstance(value, dict):
+                config[key] = self._process_config_dict(value)
+            else:
+                config[key] = self._env_var_decoder(value)
+        return config
+
+    def _load_networks_and_accounts(self):
         if self.config_data.get(ENDPOINTS_CONFIG_NAME, None) is None:
             self.config_data[ENDPOINTS_CONFIG_NAME] = DEVELOPMENT_NETWORK_DICT
         active_network_name = (
@@ -157,9 +207,17 @@ class GaboonConfig:
             if self.active_profile_data.get("default_network", None)
             else DEVELOPMENT_NETWORK_NAME
         )
+        active_profile_default_account_name = (
+            self.active_profile_data["default_account_name"]
+            if self.active_profile_data.get("default_account_name", None)
+            else None
+        )
+        global_unsafe_keys: Accounts = self.get_global_unsafe_keys_from_config_data()
         self.networks = Networks(
             self.config_data[ENDPOINTS_CONFIG_NAME],
             active_network_name=active_network_name,
+            global_default_account_name=active_profile_default_account_name,
+            global_unsafe_keys=global_unsafe_keys,
         )
 
     # Properties
@@ -171,3 +229,7 @@ class GaboonConfig:
     @property
     def active_profile_data(self) -> dict:
         return self.config_data["profile"][self.active_profile]
+
+    @property
+    def active_profile_name(self) -> str:
+        return self.active_profile

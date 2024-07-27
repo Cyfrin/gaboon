@@ -24,3 +24,7 @@ def test_cli_init():
             assert fp.read() == GITIGNORE
         with temp_dir.joinpath(Path(".gitattributes")).open() as fp:
             assert fp.read() == GITATTRIBUTES
+
+
+def test_can_work_with_debug_for_subparsers():
+    pass

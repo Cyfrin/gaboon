@@ -10,7 +10,7 @@ default_network = "fake_sepolia"
 
 # This is your overall default account, network specific accounts will override this.
 # You will use the anvil default account for development purposes, unless otherwise specified. 
-default_account = "my_account"
+default_account_name = "my_account"
 
 [networks.fake_sepolia]
 # anvil -p 8555ase

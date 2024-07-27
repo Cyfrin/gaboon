@@ -37,6 +37,7 @@ The Gaboon viper (Bitis gabonica), also called the Gaboon adder, is a viper spec
 - [ ] `gab console`
 - [ ] Refactor with rust's `PyO3` so it's faster
 - [ ] ENS Support
+- [ ] Password files in the `gaboon.toml` for decrypting accounts
 
 # Speed Comparisons
 
@@ -67,5 +68,21 @@ So for Gaboon... We will want to store it at a higher level, and then pass it do
 
 # Refactor timeeeeeeeeeee 
 
-1. Move accounts to be it's own thing
-2. Expose everything in `gaboon`
+Accounts:
+
+Each network will have it's own list of accounts. 
+When the user accesses:
+
+```python
+project.accounts 
+```
+
+It will be in the order of:
+1. Network accounts, with the default network accounts in position 1
+2. Project level accounts with the default project accounts in position `1 + len(network.accounts)`
+
+Q: What if there is no default network account but a default project account? 
+A: Use the default project account.
+
+Q: What if there is no defaults accounts at all?
+A: Use the account in position 1. 

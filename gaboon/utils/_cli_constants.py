@@ -4,7 +4,7 @@ from pathlib import Path
 SRC_FOLDER = "src"
 README_PATH = "README.md"
 GABOON_CONFIG_PATH = "gaboon.toml"
-PROJECT_FOLDERS = [SRC_FOLDER, "tests", "script"]
+PROJECT_FOLDERS = [SRC_FOLDER, "tests", "script", ".vscode"]
 
 
 GITATTRIBUTES = """
@@ -221,5 +221,13 @@ gab compile
 _For documentation, please run `gab --help` or visit [the Gaboon documentation](https://github.com/Cyfrin/gaboon)_
 """
 
-# DEFAULT_KEYSTORES_PATH = Path.home().joinpath(".foundry/keystores")
 DEFAULT_KEYSTORES_PATH = Path.home().joinpath(".foundry/keystores")
+SETTINGS_JSON_FILE = ".vscode/settings.json"
+
+SETTINGS_JSON_FILE_CONTENTS = """
+{
+  "files.exclude": {
+    "**/__pycache__": true
+  }
+}
+"""

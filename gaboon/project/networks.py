@@ -1,6 +1,8 @@
-from typing import Any, Dict, Optional, Union
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 from gaboon.logging import logger
-from .accounts import Accounts
+from .accounts import Accounts, Account
+from gaboon.cli.wallet import list_accounts
 
 
 DEFAULT_NETWORK_NAME = "default_network"
@@ -11,7 +13,7 @@ DEVELOPMENT_NETWORK_DICT = {
     DEVELOPMENT_NETWORK_NAME: {
         "url": "",
         "chain_id": 1337,
-        "default_account": "anvil_key",
+        "default_account_name": "anvil1",
         "name": DEVELOPMENT_NETWORK_NAME,
     }
 }
@@ -26,9 +28,11 @@ class Network:
         self.name = ""
         self.accounts = Accounts()
         self.default_account_name = ""
-
         for key, value in network_data.items():
-            setattr(self, key, value)
+            if key == "default_account_name":
+                self.default_account_name = value
+            else:
+                setattr(self, key, value)
         self.default_account_name = default_account_name
 
     def __repr__(self):
@@ -56,6 +60,10 @@ class Network:
     def __contains__(self, key):
         return hasattr(self, key)
 
+    def __getattr__(self, name: str) -> Any:
+        if name in self.accounts:
+            return self.accounts[name]
+
     def get(self, key, default=None):
         return getattr(self, key, default)
 
@@ -68,20 +76,53 @@ class Network:
     def items(self):
         return self.__dict__.items()
 
+    @property
+    def default_account(self) -> Account | None:
+        if self.default_account_name is not None:
+            return self.accounts[self.default_account_name]
+        elif len(self.accounts) > 0:
+            return self.accounts[0]
+        else:
+            return None
+
 
 class Networks:
     _networks: Dict[str, Network]
-    active_network_name: str
+    active_network_name: str | None
+    global_default_account_name: str | None
+    _global_unsafe_keys: Accounts | None
+    accounts: Accounts
 
     def __init__(
-        self, networks: Dict[str, dict], active_network_name: str | None = None
+        self,
+        networks: Dict[str, dict],
+        active_network_name: str | None = None,
+        global_default_account_name: str | None = None,
+        global_unsafe_keys: Accounts | List[str] | None = None,
     ):
+        self.global_default_account_name = global_default_account_name
+        self.active_network_name = active_network_name
+        if isinstance(global_unsafe_keys, List):
+            global_unsafe_keys = Accounts(
+                unsafe_keys=global_unsafe_keys,
+                default_account_name=global_default_account_name,
+            )
+        self._global_unsafe_keys = global_unsafe_keys
         self._networks = {}
         for network_name, network_data in networks.items():
+            logger.debug(f"Initializing network {network_name}.")
             self._networks[network_name] = Network(network_data)
-
         if DEVELOPMENT_NETWORK_NAME not in self._networks:
             self.update(DEVELOPMENT_NETWORK_DICT)
+
+        account_paths: List[Path] = list_accounts()
+        self.accounts = Accounts()
+        self.accounts.append(self._global_unsafe_keys)
+        for account_path in account_paths:
+            account_name = account_path.stem
+            account = Account(name=account_name)
+            self.accounts.add(account)
+
         self.set_active_network(active_network_name)
 
     def __getitem__(self, key: str) -> Network:
@@ -125,20 +166,29 @@ class Networks:
     def __getattr__(self, name: str) -> Network:
         if name in self._networks:
             return self._networks[name]
+        if name in self.__class__.__dict__:
+            return getattr(self.__class__, name)
         raise AttributeError(f"'Networks' object has no attribute '{name}'")
 
-    def __setattr__(self, name: str, value: Union[Network, dict]):
-        if name in ["_networks", "active_network_name"]:
-            # Allow setting of internal attributes
+    def __setattr__(self, name: str, value: Union[Network, dict, Accounts, None]):
+        if name in [
+            "_networks",
+            "active_network_name",
+            "_global_unsafe_keys",
+            "global_default_account_name",
+        ]:
             super().__setattr__(name, value)
         else:
-            # Treat other attributes as networks
             if isinstance(value, Network):
+                self._networks[name] = value
+            elif isinstance(value, Accounts):
                 self._networks[name] = value
             elif isinstance(value, dict):
                 self._networks[name] = Network(value)
             else:
-                raise ValueError("Network must be a Network object or a dict.")
+                raise ValueError(
+                    "Network must be a Network object, Accounts object, None, or a dict."
+                )
 
     def __delattr__(self, name: str):
         if name in self._networks:
@@ -147,16 +197,30 @@ class Networks:
             raise AttributeError(f"'Networks' object has no attribute '{name}'")
 
     def get(self, key, default=None):
+        if hasattr(self, key):
+            return getattr(self, key)
         return self._networks.get(key, default)
 
     def update(self, other: Dict[str, dict]):
         for key, value in other.items():
             self[key] = value
 
-    def set_active_network(self, active_network_name: str | None):
-        if active_network_name is None:
-            active_network_name = DEVELOPMENT_NETWORK_NAME
-        self.active_network_name: str = active_network_name
+    def set_active_network(self, active_network_name_or_url: str | None):
+        if active_network_name_or_url is None:
+            active_network_name_or_url = DEVELOPMENT_NETWORK_NAME
+        if active_network_name_or_url not in self._networks:
+            if self.is_valid_rpc():
+                self.add_network(
+                    active_network_name_or_url,
+                    active_network_name_or_url,
+                )
+            else:
+                logger.error(
+                    f"Network {active_network_name_or_url} not found in networks, or is not a valid RPC."
+                )
+        if self.active_network_name != active_network_name_or_url:
+            logger.debug(f"Changed active network to {active_network_name_or_url}.")
+            self.active_network_name: str = active_network_name_or_url
 
     def add_network(
         self,
@@ -202,3 +266,22 @@ class Networks:
     @property
     def active_network(self) -> Network:
         return self._networks[self.active_network_name]
+
+    @property
+    def accounts(self) -> Accounts:
+        for network in self._networks.values():
+            if network.default_account_name is not None:
+                return network.accounts
+
+    @property
+    def default_account(self) -> Account | None:
+        if self.active_network.default_account is not None:
+            return self.active_network.default_account
+        elif self.global_default_account_name is not None:
+            return self.accounts[self.global_default_account_name]
+        else:
+            return None
+
+    @classmethod
+    def is_valid_rpc(cls, url: str) -> bool:
+        return url.startswith("http")

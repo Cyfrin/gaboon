@@ -11,6 +11,8 @@ from gaboon.utils._cli_constants import (
     GABOON_CONFIG_PATH,
     COUNTER_CONTRACT_PATH,
     COUNTER_VYPER_CONTRACT_SRC,
+    SETTINGS_JSON_FILE,
+    SETTINGS_JSON_FILE_CONTENTS,
 )
 from gaboon.project.gaboon_config import GABOON_DEFAULT_CONFIG
 
@@ -65,3 +67,7 @@ def _create_files(project_path: Path) -> None:
     readme_file = project_path.joinpath(README_PATH)
     with open(readme_file, "w") as f:
         f.write(README_MD_SRC)
+    settings_json_file = project_path.joinpath(SETTINGS_JSON_FILE)
+    settings_json_file.parent.mkdir(exist_ok=True)
+    with open(settings_json_file, "w") as f:
+        f.write(SETTINGS_JSON_FILE_CONTENTS)
