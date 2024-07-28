@@ -3,10 +3,12 @@ from typing import Any, Dict, List, Optional, Union
 from gaboon.logging import logger
 from .accounts import Accounts, Account
 from gaboon.cli.wallet import list_accounts
+from boa.rpc import EthereumRPC
 
 
 DEFAULT_NETWORK_NAME = "default_network"
 DEVELOPMENT_NETWORK_NAME = "development"
+DEVELOPMENT_NETWORK_NAMES = [DEVELOPMENT_NETWORK_NAME, "dev"]
 ENDPOINTS_CONFIG_NAME = "networks"
 
 DEVELOPMENT_NETWORK_DICT = {
@@ -23,8 +25,14 @@ class Network:
     name: str
     accounts: Accounts
     default_account_name: str
+    rpc: EthereumRPC | None
 
-    def __init__(self, network_data: dict, default_account_name: str | None = None):
+    def __init__(
+        self,
+        network_data: dict,
+        default_account_name: str | None = None,
+        rpc: str | EthereumRPC | None = None,
+    ):
         self.name = ""
         self.accounts = Accounts()
         self.default_account_name = ""
@@ -33,6 +41,10 @@ class Network:
                 self.default_account_name = value
             else:
                 setattr(self, key, value)
+        if isinstance(rpc, EthereumRPC):
+            self.rpc = rpc
+        if isinstance(rpc, str):
+            self.rpc = EthereumRPC(rpc)
         self.default_account_name = default_account_name
 
     def __repr__(self):
@@ -84,6 +96,10 @@ class Network:
             return self.accounts[0]
         else:
             return None
+
+    @property
+    def url(self) -> str:
+        return self.rpc.identifier
 
 
 class Networks:
@@ -205,22 +221,32 @@ class Networks:
         for key, value in other.items():
             self[key] = value
 
-    def set_active_network(self, active_network_name_or_url: str | None):
-        if active_network_name_or_url is None:
-            active_network_name_or_url = DEVELOPMENT_NETWORK_NAME
-        if active_network_name_or_url not in self._networks:
-            if self.is_valid_rpc():
-                self.add_network(
-                    active_network_name_or_url,
-                    active_network_name_or_url,
-                )
-            else:
-                logger.error(
-                    f"Network {active_network_name_or_url} not found in networks, or is not a valid RPC."
-                )
-        if self.active_network_name != active_network_name_or_url:
-            logger.debug(f"Changed active network to {active_network_name_or_url}.")
-            self.active_network_name: str = active_network_name_or_url
+    def set_active_network(
+        self, active_network_name_or_url_or_network: str | Network | None
+    ):
+        if isinstance(active_network_name_or_url_or_network, Network):
+            self.active_network_name: str = active_network_name_or_url_or_network.name
+        elif isinstance(active_network_name_or_url_or_network, str):
+            if self.is_valid_rpc(active_network_name_or_url_or_network):
+                if active_network_name_or_url_or_network not in self._networks:
+                    self.add_network(active_network_name_or_url_or_network)
+        # if active_network_name_or_url_or_network in DEVELOPMENT_NETWORK_NAMES:
+        #     active_network_name_or_url = DEVELOPMENT_NETWORK_NAME
+        # if active_network_name_or_url_or_network is None:
+        #     active_network_name_or_url = DEVELOPMENT_NETWORK_NAME
+        # if active_network_name_or_url_or_network not in self._networks:
+        #     if self.is_valid_rpc():
+        #         self.add_network(
+        #             active_network_name_or_url,
+        #             active_network_name_or_url,
+        #         )
+        #     else:
+        #         logger.error(
+        #             f"Network {active_network_name_or_url} not found in networks, or is not a valid RPC."
+        #         )
+        # if self.active_network_name != active_network_name_or_url:
+        #     logger.debug(f"Changed active network to {active_network_name_or_url}.")
+        #     self.active_network_name: str = active_network_name_or_url
 
     def add_network(
         self,
@@ -259,6 +285,9 @@ class Networks:
                 "Network must be a Network object, dict, or a set of strings."
             )
 
+    def get_network_urls(self) -> List[str]:
+        return [network.url for network in self._networks.values()]
+
     @property
     def networks(self) -> Dict[str, Network]:
         return self._networks
@@ -266,6 +295,10 @@ class Networks:
     @property
     def active_network(self) -> Network:
         return self._networks[self.active_network_name]
+
+    @active_network.setter
+    def active_network(self, value):
+        self.set_active_network(value)
 
     @property
     def accounts(self) -> Accounts:

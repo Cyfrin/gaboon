@@ -35,6 +35,8 @@ class Project:
     def set_boa_network_env(self, network_url: str | None = None):
         if self.boa.env.eoa is not None:
             logger.warning("Resestting boa ENV, all boa state will be reset")
+        if network_url in self.get_network_urls():
+            self.set_active_network(network_url)
         if network_url is None:
             network_url = self.networks.active_network.url
         logger.debug(f"Setting boa network env to {self.networks.active_network.url}")

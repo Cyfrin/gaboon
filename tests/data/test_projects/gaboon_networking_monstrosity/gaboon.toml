@@ -6,7 +6,6 @@ out = "out"
 libs = ["lib"]
 remappings = []
 mesc_path = ""
-default_network = "fake_sepolia"
 
 # This is your overall default account, network specific accounts will override this.
 # You will use the anvil default account for development purposes, unless otherwise specified. 

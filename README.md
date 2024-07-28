@@ -20,9 +20,19 @@ A fast, pythonic, Vyper smart contract testing and development framework.
 - [ ] Test vyper projects (`gab test`)
 - [ ] Import/generate keystores (`gab wallet import`)
 - [ ] Install packages `gab install <pypi_project>`
-- [ ] Manage networks `gab networks <add|remove|list>`
+- [ ] `gab install (<github_repo> | <pypi_project>)` 
 
 Should be fast to install and test. 
+
+Commands for MVP:
+```bash
+init ✅
+compile ✅
+wallet ✅
+run ✅ # (half way)
+test ❌
+install ❌
+```
 
 ## Background
 
@@ -31,13 +41,16 @@ The Gaboon viper (Bitis gabonica), also called the Gaboon adder, is a viper spec
 
 ## Later
 
-- [ ] `gab install (<github_repo> | <pypi_project>)` 
 - [ ] halmos built-in
+- [ ] Manage networks `gab networks <add|remove|list>`
+- [ ] [rust/python/pyo3 modules for more performance](https://www.maturin.rs/tutorial)
 - [ ] fuzzing 
 - [ ] `gab console`
-- [ ] Refactor with rust's `PyO3` so it's faster
 - [ ] ENS Support
 - [ ] Password files in the `gaboon.toml` for decrypting accounts
+- [ ] solidity support
+- [ ] medusa fuzzer
+- [ ] mojo support
 
 # Speed Comparisons
 
